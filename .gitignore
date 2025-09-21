@@ -1,0 +1,71 @@
+# Visual Studio 相关
+.vs/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln.docstates
+*.sln
+*.user
+*.userosscache
+*.sln.docstates
+
+# 编译输出
+Debug/
+Release/
+x64/
+*.obj
+*.ilk
+*.pch
+*.pdb
+*.exp
+*.lib
+*.idb
+*.pdb
+*.res
+*.tlog
+*.lastbuildstate
+*.log
+*.sbr
+*.sdf
+*.opensdf
+*.VC.db
+
+# 临时文件
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+*.cache
+
+# 项目文件
+*.vcxproj.filters
+*.vcxproj.user
+*.vcxproj
+
+# 资源文件
+*.aps
+*.rc
+
+# 其他
+*.exe
+*.dll
+*.so
+*.dylib
+contact.txt
+secret.txt
+*.recipe
+*.FileListAbsolute.txt
+*.sarif
+*.pchast
+*.enc
+
+# 升级日志
+UpgradeLog*.htm
+
+# 锁定文件
+*.lock
+
+# IDE 相关
+.DS_Store
+Thumbs.db
