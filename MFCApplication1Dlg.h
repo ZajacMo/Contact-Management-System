@@ -1,31 +1,31 @@
 ﻿
-// MFCApplication1Dlg.h: 头文件
+// MFCApplication1Dlg.h: Header file
 //
 
 #pragma once
 
 
-// CMFCApplication1Dlg 对话框
+// CMFCApplication1Dlg dialog
 class CMFCApplication1Dlg : public CDialogEx
 {
-// 构造
+	// Construction
 public:
-	CMFCApplication1Dlg(CWnd* pParent = nullptr);	// 标准构造函数
+	CMFCApplication1Dlg(CWnd* pParent = nullptr);	// Standard constructor
 
-// 对话框数据
+	// Dialog data
 #ifdef AFX_DESIGN_TIME
-	enum { IDD = IDD_SIGNINPAGE};
+	enum { IDD = IDD_SIGNINPAGE };
 #endif
 
-	protected:
-	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV 支持
+protected:
+	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
 
 
-// 实现
+// Implementation
 protected:
 	HICON m_hIcon;
 
-	// 生成的消息映射函数
+	// Generated message map functions
 	virtual BOOL OnInitDialog();
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 	afx_msg void OnPaint();
@@ -35,7 +35,6 @@ public:
 
 	afx_msg void OnBnClickedSignin();
 	afx_msg void OnBnClickedExit();
-//	afx_msg void OnEnChangeCodein();
 
 	CEdit code;
 	CStatic failuretip;
@@ -43,6 +42,6 @@ public:
 	virtual void OnOK();
 	afx_msg void OnClose();
 	afx_msg void OnBnClickedCodefogotten();
-	afx_msg void OnBnDoubleclickedCodefogotten();
+	afx_msg void OnDoubleclickedCodefogotten();
 
 };

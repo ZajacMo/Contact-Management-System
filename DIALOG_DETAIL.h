@@ -2,23 +2,23 @@
 #include "afxdialogex.h"
 
 
-// DIALOG_DETAIL 对话框
+// DIALOG_DETAIL dialog
 
 class DIALOG_DETAIL : public CDialogEx
 {
 	DECLARE_DYNAMIC(DIALOG_DETAIL)
 
 public:
-	DIALOG_DETAIL(CWnd* pParent = nullptr);   // 标准构造函数
+	DIALOG_DETAIL(CWnd* pParent = nullptr);   // Standard constructor
 	virtual ~DIALOG_DETAIL();
 	virtual void OnOK();
-// 对话框数据
+// Dialog data
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_DIALOG_DETAIL };
 #endif
 
 protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
+	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 
 	DECLARE_MESSAGE_MAP()
 public:

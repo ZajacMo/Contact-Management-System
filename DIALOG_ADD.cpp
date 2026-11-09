@@ -1,4 +1,5 @@
-﻿// DIALOG_ADD.cpp: 实现文件
+﻿
+// DIALOG_ADD.cpp: Implementation file for the "new contact" dialog.
 //
 
 #include "pch.h"
@@ -6,13 +7,15 @@
 #include "afxdialogex.h"
 #include "DIALOG_ADD.h"
 
-// DIALOG_ADD 对话框
+// DIALOG_ADD dialog
 
 IMPLEMENT_DYNAMIC(DIALOG_ADD, CDialogEx)
+
 DIALOG_ADD::DIALOG_ADD(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_DIALOG_ADD, pParent)
 {
 }
+
 DIALOG_ADD::~DIALOG_ADD()
 {
 }
@@ -28,38 +31,55 @@ void DIALOG_ADD::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDOK, Add);
 }
 BEGIN_MESSAGE_MAP(DIALOG_ADD, CDialogEx)
-	/*ON_EN_CHANGE(IDC_NAME_ADD, &DIALOG_ADD::OnEnChangeNameAdd)
-	ON_EN_CHANGE(IDC_PHONE_ADD, &DIALOG_ADD::OnEnChangePhoneAdd)
-	ON_EN_CHANGE(IDC_SEX_ADD, &DIALOG_ADD::OnEnChangeSexAdd)
-	ON_EN_CHANGE(IDC_AGE_ADD, &DIALOG_ADD::OnEnChangeAgeAdd)
-	ON_EN_CHANGE(IDC_ADDRESS_ADD, &DIALOG_ADD::OnEnChangeAddressAdd)*/
 	ON_BN_CLICKED(IDOK, &DIALOG_ADD::OnBnClickedOk)
 END_MESSAGE_MAP()
-// DIALOG_ADD 消息处理程序
+// DIALOG_ADD message handlers
 
-//修改回车键
+// Enter key handling
 void DIALOG_ADD::OnOK()
 {
 	DIALOG_ADD::OnBnClickedOk();
 }
-//确定键
+
+// OK button handler
 void DIALOG_ADD::OnBnClickedOk()
 {
 	contact TempPerson;
-	TempPerson.readedit(Name, Phone, Age ,Sex, Adress);
+	TempPerson.readedit(Name, Phone, Age, Sex, Adress);
+
+	// Name and phone number are mandatory.
+	if (TempPerson.f_name().empty() || TempPerson.f_phonenumber().empty())
+	{
+		Tip_m(TEXT("Please enter a name and a phone number!"));
+		return;
+	}
+
+	// The age is optional, but when present it must be a whole number.
+	// A free slot in the list is marked with age -1, so a negative age could
+	// not be told apart from "no contact here".
+	CString ageText;
+	Age.GetWindowTextW(ageText);
+	ageText.Trim();
+	if (!ageText.IsEmpty() && !IsValidAge((CStringA)ageText))
+	{
+		Tip_m(TEXT("The age must be a whole number!"));
+		return;
+	}
+
+	// Reject a contact that already exists, matching on name or phone number.
 	int test = List.search(TempPerson.f_name(), TempPerson.f_phonenumber());
-	if (TempPerson.f_name() == "\0" || TempPerson.f_phonenumber() == "\0")
+	if (test != -1)
 	{
-		Tip_m(TEXT("请输入完整信息！"));
+		Tip_m(TEXT("This contact already exists. Add failed!"));
+		return;
 	}
-	else if (test==-1)
+
+	if (!List.input(TempPerson))
 	{
-		List.input(TempPerson);
-		Tip_m(TEXT("新建成功！"));
-		OnCancel();
+		Tip_m(TEXT("The contact list is full!"));
+		return;
 	}
-	else
-	{
-		Tip_m( TEXT("联系人已存在！添加失败！"));
-	}
+
+	Tip_m(TEXT("Contact created!"));
+	OnCancel();
 }

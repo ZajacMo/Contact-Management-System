@@ -1,4 +1,5 @@
-﻿// DIALOG_DETAIL.cpp: 实现文件
+﻿
+// DIALOG_DETAIL.cpp: Implementation file for the "contact detail" dialog.
 //
 
 #include "pch.h"
@@ -6,15 +7,13 @@
 #include "afxdialogex.h"
 #include "DIALOG_DETAIL.h"
 
-
-// DIALOG_DETAIL 对话框
+// DIALOG_DETAIL dialog
 
 IMPLEMENT_DYNAMIC(DIALOG_DETAIL, CDialogEx)
 
 DIALOG_DETAIL::DIALOG_DETAIL(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_DIALOG_DETAIL, pParent)
 {
-
 }
 
 DIALOG_DETAIL::~DIALOG_DETAIL()
@@ -29,6 +28,9 @@ void DIALOG_DETAIL::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_PHONE_ADD, Phonenumber);
 	DDX_Control(pDX, IDC_AGE_ADD, Age);
 	DDX_Control(pDX, IDC_ADDRESS_ADD, Address);
+
+	// Show the selected contact. The dialog is only opened after the main
+	// menu has checked that a row is selected, so List.position is valid.
 	CString tempcstr;
 	if (List.f_age(List.position) != 0)
 	{
@@ -52,32 +54,40 @@ BEGIN_MESSAGE_MAP(DIALOG_DETAIL, CDialogEx)
 END_MESSAGE_MAP()
 
 
-// DIALOG_DETAIL 消息处理程序
+// DIALOG_DETAIL message handlers
 
-//修改
+// Modify button
 void DIALOG_DETAIL::OnBnClickedButton2()
 {
 	contact TempPerson;
 	TempPerson.readedit(Name, Phonenumber, Age, Sex, Address);
 	if (TempPerson == List.output(List.position))
-		Tip_m(TEXT("请先修改再点击！"));
-	else
 	{
-		List.del(List.position);
-		List.input(TempPerson);
-		Tip_m(TEXT("修改成功！"));
-		List.position=List.search(TempPerson.f_name());
-		OnCancel();
+		Tip_m(TEXT("Nothing has changed yet!"));
+		return;
 	}
+
+	// Replace the contact: free the old slot, then insert the new record.
+	List.del(List.position);
+	if (!List.input(TempPerson))
+	{
+		Tip_m(TEXT("The contact list is full!"));
+		return;
+	}
+	Tip_m(TEXT("Contact updated!"));
+	List.position = List.search(TempPerson.f_name());
+	OnCancel();
 }
 
-//删除
+// Delete button
 void DIALOG_DETAIL::OnBnClickedButton1()
 {
 	List.del(List.position);
-	Tip_m(TEXT("删除成功！"));
+	Tip_m(TEXT("Contact deleted!"));
 	OnCancel();
 }
+
+// Enter key handling: save the edit if anything changed, otherwise just close.
 void DIALOG_DETAIL::OnOK()
 {
 	contact tempPerson;

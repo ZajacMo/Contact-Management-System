@@ -1,18 +1,25 @@
 ﻿
-// MFCApplication1.cpp: 定义应用程序的类行为。
+// MFCApplication1.cpp: Defines the class behaviour of the application.
 //
 
 #include "pch.h"
 #include "framework.h"
 #include "MFCApplication1.h"
 #include "MFCApplication1Dlg.h"
-#include"SIGNSUCCESS.h"
-#include"MENU.h"
+#include "SIGNSUCCESS.h"
+#include "MENU.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
 
+// The single, application wide contact list.
+//
+// The declaration lives in contact.h and the definition here, so that every
+// translation unit shares one instance. Defining it in a header would give
+// each translation unit its own copy, which is what the linker used to
+// complain about with LNK4006.
+ContactList List;
 
 // CMFCApplication1App
 
@@ -20,109 +27,86 @@ BEGIN_MESSAGE_MAP(CMFCApplication1App, CWinApp)
 	ON_COMMAND(ID_HELP, &CWinApp::OnHelp)
 END_MESSAGE_MAP()
 
-//控制台
-//void InitConsoleWindow()
-//{
-//	int nCrt = 0;
-//	FILE* fp;
-//	AllocConsole();
-//	nCrt = _open_osfhandle((long)GetStdHandle(STD_OUTPUT_HANDLE), _O_TEXT);
-//	fp = _fdopen(nCrt, "w");
-//	*stdout = *fp;
-//	setvbuf(stdout, NULL, _IONBF, 0);
-//}
-
-// CMFCApplication1App 构造
+// CMFCApplication1App construction
 
 CMFCApplication1App::CMFCApplication1App()
 {
-	// 支持重新启动管理器
+	// Support for the Restart Manager.
 	m_dwRestartManagerSupportFlags = AFX_RESTART_MANAGER_SUPPORT_RESTART;
 
-	// TODO: 在此处添加构造代码，
-	// 将所有重要的初始化放置在 InitInstance 中
+	// TODO: Add construction code here,
+	// place all important initialization in InitInstance
 }
 
-
-// 唯一的 CMFCApplication1App 对象
+// The only CMFCApplication1App object
 
 CMFCApplication1App theApp;
 
-
-// CMFCApplication1App 初始化
+// CMFCApplication1App initialization
 
 BOOL CMFCApplication1App::InitInstance()
 {
-
-	//InitConsoleWindow();
 	freopen("CON", "w", stdout);
 
 	AfxOleInit();
-	// 如果一个运行在 Windows XP 上的应用程序清单指定要
-	// 使用 ComCtl32.dll 版本 6 或更高版本来启用可视化方式，
-	//则需要 InitCommonControlsEx()。  否则，将无法创建窗口。
+	// If the application manifest of Windows XP specifies ComCtl32.dll
+	// version 6 or later to enable visual styles, InitCommonControlsEx()
+	// is required. Without it, no window can be created.
 	INITCOMMONCONTROLSEX InitCtrls;
 	InitCtrls.dwSize = sizeof(InitCtrls);
-	// 将它设置为包括所有要在应用程序中使用的
-	// 公共控件类。
+	// Designate the common control classes to use, so the Windows common
+	// controls are available to the dialogs.
 	InitCtrls.dwICC = ICC_WIN95_CLASSES;
 	InitCommonControlsEx(&InitCtrls);
 
-	//登录界面弹出
+	// Show the sign-in dialog.
 	CMFCApplication1Dlg dlg;
 	dlg.DoModal();
-	//登陆成功提示
-	/*SIGNSUCCESS signsuccess;
-	signsuccess.Create(IDD_SIGNSUCCEEDED);
-	signsuccess.ShowWindow(SW_SHOWNORMAL);
-	signsuccess.Information.SetWindowTextW(TEXT("登陆成功！正在进入通讯录......"));*/
+
+	// Confirm a successful sign-in.
 	SIGNSUCCESS tip;
-	Tip_s(tip,TEXT("登陆成功！正在进入通讯录......"));
+	Tip_s(tip, TEXT("Signed in! Opening the contact manager......"));
 
 	CWinApp::InitInstance();
 
-
 	AfxEnableControlContainer();
-	
-	// 创建 shell 管理器，以防对话框包含
-	// 任何 shell 树视图控件或 shell 列表视图控件。
-	CShellManager *pShellManager = new CShellManager;
 
-	// 激活“Windows Native”视觉管理器，以便在 MFC 控件中启用主题
+	// Create the shell manager in case the dialog contains
+	// any shell tree view or shell list view controls.
+	CShellManager* pShellManager = new CShellManager;
+
+	// Activate the "Windows Native" visual manager so that MFC controls
+	// use the current Windows theme.
 	CMFCVisualManager::SetDefaultManager(RUNTIME_CLASS(CMFCVisualManagerWindows));
 
-	// 标准初始化
-	// 如果未使用这些功能并希望减小
-	// 最终可执行文件的大小，则应移除下列
-	// 不需要的特定初始化例程
-	// 更改用于存储设置的注册表项
-	// TODO: 应适当修改该字符串，
-	// 例如修改为公司或组织名
-	SetRegistryKey(_T("应用程序向导生成的本地应用程序"));
+	// Standard initialization
+	// If you do not use these features and want to reduce
+	// the size of your executable, remove the following
+	// unneeded initialization routines
+	// Change the registry key used to store settings
+	// TODO: Modify this string to be the company or organization name
+	SetRegistryKey(_T("Contact Management System"));
 
-	//主对话框创建
+	// Create the main dialog.
 	MENU menu;
 	m_pMainWnd = &menu;
 	INT_PTR nResponse = menu.DoModal();
 
 	if (nResponse == IDOK)
 	{
-		// TODO: 在此放置处理何时用
-		//  “确定”来关闭对话框的代码
+		// TODO: Place code here to handle when the dialog is accepted
 	}
 	else if (nResponse == IDCANCEL)
 	{
-		// TODO: 在此放置处理何时用
-		//  “取消”来关闭对话框的代码
-		
+		// TODO: Place code here to handle when the dialog is cancelled
 	}
 	else if (nResponse == -1)
 	{
-		TRACE(traceAppMsg, 0, "警告: 对话框创建失败，应用程序将意外终止。\n");
-		TRACE(traceAppMsg, 0, "警告: 如果您在对话框上使用 MFC 控件，则无法 #define _AFX_NO_MFC_CONTROLS_IN_DIALOGS。\n");
+		TRACE(traceAppMsg, 0, "Warning: the dialog failed to create, the application will terminate unexpectedly.\n");
+		TRACE(traceAppMsg, 0, "Warning: if you use MFC controls in the dialog, you cannot #define _AFX_NO_MFC_CONTROLS_IN_DIALOGS.\n");
 	}
 
-	// 删除上面创建的 shell 管理器。
+	// Delete the shell manager created above.
 	if (pShellManager != nullptr)
 	{
 		delete pShellManager;
@@ -132,8 +116,7 @@ BOOL CMFCApplication1App::InitInstance()
 	ControlBarCleanUp();
 #endif
 
-	// 由于对话框已关闭，所以将返回 FALSE 以便退出应用程序，
-	//  而不是启动应用程序的消息泵。
+	// Since the dialog has been closed, FALSE is returned so that the
+	// application does not start the application's message pump.
 	return FALSE;
 }
-

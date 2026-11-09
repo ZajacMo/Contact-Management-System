@@ -1,16 +1,84 @@
-#pragma once
-#include"lock.h"
+ï»¿#pragma once
+#include "lock.h"
+#include <algorithm>
+#include <fstream>
+#include <string>
+#include <vector>
+
+// Maximum number of contacts the application can hold.
+const int ContactCapacity = 1000;
+
+// Splits a tab separated record into its fields.
+inline std::vector<std::string> SplitRecord(const std::string& line)
+{
+	std::vector<std::string> fields;
+	std::string current;
+	for (char ch : line)
+	{
+		if (ch == '\t')
+		{
+			fields.push_back(current);
+			current.clear();
+		}
+		else
+		{
+			current.push_back(ch);
+		}
+	}
+	fields.push_back(current);
+	return fields;
+}
+
+// Returns the field at index, or an empty string when the record is short.
+inline std::string FieldAt(const std::vector<std::string>& fields, size_t index)
+{
+	return index < fields.size() ? fields[index] : std::string();
+}
+
+// Removes leading and trailing whitespace.
+inline std::string TrimSpaces(const std::string& text)
+{
+	size_t begin = text.find_first_not_of(" \t\r\n");
+	if (begin == std::string::npos)
+		return std::string();
+	size_t end = text.find_last_not_of(" \t\r\n");
+	return text.substr(begin, end - begin + 1);
+}
+
+// True when text is a valid age: a non-negative whole number.
+//
+// Ages are stored in the contact list as -1 to mark a free slot, so a
+// negative age would be indistinguishable from "no contact here".
+inline bool IsValidAge(const std::string& text)
+{
+	if (text.empty())
+		return false;
+	for (char ch : text)
+		if (ch < '0' || ch > '9')
+			return false;
+	return true;
+}
+
+// A single contact.
+//
+// Fields are private and reached through the f_*() accessors. ContactList is
+// a friend so it can fill records directly while reading from disk.
 class contact
 {
 public:
+	// Value equality over every field.
 	bool operator==(contact Right)
 	{
-		if (this->name == Right.name && this->address == Right.address && this->age==Right.age && this->phonenumber==Right.phonenumber && this->sex==Right.sex)
+		if (this->name == Right.name && this->address == Right.address && this->age == Right.age
+			&& this->phonenumber == Right.phonenumber && this->sex == Right.sex)
 			return 1;
 		return 0;
 	}
 
-	void readedit(CEdit &Name,CEdit &Phone, CEdit &Age,CEdit &Sex,CEdit &Adress)
+	// Copies the current contents of the given edit controls into this record.
+	// The age control is read as an integer; an empty or non numeric field
+	// yields 0, so callers validate the text before calling this.
+	void readedit(CEdit& Name, CEdit& Phone, CEdit& Age, CEdit& Sex, CEdit& Adress)
 	{
 		sex = informationget(Sex);
 		phonenumber = informationget(Phone);
@@ -20,83 +88,67 @@ public:
 		address = informationget(Adress);
 		name = informationget(Name);
 	}
-	string& f_name()
-	{
-		return name;
-	}
-	string& f_phonenumber()
-	{
-		return phonenumber;
-	}
-	int& f_age()
-	{
-		return age;
-	}
-	string& f_sex()
-	{
-		return sex;
-	}
-	string& f_address()
-	{
-		return address;
-	}
+
+	string& f_name() { return name; }
+	string& f_phonenumber() { return phonenumber; }
+	int& f_age() { return age; }
+	string& f_sex() { return sex; }
+	string& f_address() { return address; }
+
 	friend class ContactList;
+
 private:
 	string name;
 	string phonenumber;
-	int age=-1;
+	int age = -1;
 	string sex;
 	string address;
 };
 
+// The contact list.
+//
+// Contacts occupy the front of a fixed size array. A free slot is marked by
+// age == Initate_Int (-1), which is why age is validated as non-negative
+// when a contact is created.
+//
+// The list is kept sorted by descending age. That ordering is what the list
+// view shows and what SaveContact() writes to disk, so it is part of the
+// observable behaviour rather than an implementation detail.
 class ContactList
 {
 public:
-	string& f_name(int Order)
-	{
-		return Person[Order].name;
-	}
-	string& f_phonenumber(int Order)
-	{
-		return Person[Order].phonenumber;
-	}
-	int& f_age(int Order)
-	{
-		return Person[Order].age;
-	}
-	string& f_sex(int Order)
-	{
-		return Person[Order].sex;
-	}
-	string& f_address(int Order)
-	{
-		return Person[Order].address;
-	}
+	string& f_name(int Order) { return Person[Order].name; }
+	string& f_phonenumber(int Order) { return Person[Order].phonenumber; }
+	int& f_age(int Order) { return Person[Order].age; }
+	string& f_sex(int Order) { return Person[Order].sex; }
+	string& f_address(int Order) { return Person[Order].address; }
+
 public:
-	//°´ÕÕÄêÁäÅÅÁĞÁªÏµÈË ²¢ Êä³ö×î½üµÄ¿ÕÁªÏµÈËÏÂ±ê £¨´ıÓÅ»¯£©
+	// Sorts the contacts by descending age and returns the number of slots
+	// currently in use.
+	//
+	// Free slots carry age -1 and therefore sort to the end, so the occupied
+	// contacts always occupy indices [0, count).
+	//
+	// The previous implementation used a hand written bubble sort over 999
+	// elements and ran it on every search, insert and save. std::stable_sort
+	// keeps the same ordering for a fraction of the work.
 	int line()
 	{
-		//°´ÕÕÄêÁä´Ó´óµ½Ğ¡Ã°ÅİÅÅĞò
-		for (int Order = 0; Order < 999; Order++)
-			for (int j1 = 0; j1 < 999 - Order; j1++)
-				//Á½Á½½»»»
-				if (Person[j1].age < Person[j1 + 1].age)
-				{
-					contact temp = Person[j1];
-					Person[j1] = Person[j1 + 1];
-					Person[j1 + 1] = temp;
-				}
-		//ÕÒµ½×î½üµÄ¿ÕÁªÏµÈËÏÂ±ê ²¢¸³¸øCount
-		int  Count = 0;
-		for (Count; Count < 999; Count++)
-			if (Person[Count].age == Initate_Int)
-				break;
+		std::stable_sort(Person, Person + ContactCapacity,
+			[](const contact& a, const contact& b) { return a.age > b.age; });
+
+		int Count = 0;
+		while (Count < ContactCapacity && Person[Count].age != Initate_Int)
+			Count++;
 		return Count;
 	}
-	
-	//É¾³ıÁªÏµÈËĞÅÏ¢
+
+	// Clears the contact at index a6, turning the slot back into a free one.
 	void del(int a6)
 	{
+		if (a6 < 0 || a6 >= ContactCapacity)
+			return;
 		Person[a6].address = Blank_string;
 		Person[a6].age = Initate_Int;
 		Person[a6].name = Blank_string;
@@ -104,81 +156,116 @@ public:
 		Person[a6].sex = Blank_string;
 	}
 
-	//µç»°»òĞÕÃû²éÕÒÁªÏµÈË		·µ»ØÏÂ±ê	·ñÔò·µ»Ø-1
-	int search(string Unsearched_Name="/0", string Unsearched_Phonenumber = "/0")
+	// Finds the first contact whose name or phone number matches.
+	//
+	// The "/0" default means "do not search by this field"; it is a value
+	// that cannot occur in a contact entered through the dialog.
+	// Returns the index of the match, or -1 when there is none.
+	int search(string Unsearched_Name = "/0", string Unsearched_Phonenumber = "/0")
 	{
 		int MAX = line();
-		for (int Order = 0; Order <MAX; Order++)
+		for (int Order = 0; Order < MAX; Order++)
 		{
 			if (Person[Order].name == Unsearched_Name || Person[Order].phonenumber == Unsearched_Phonenumber)
-			{
-				output(Order);
 				return Order;
-			}
 		}
 		return -1;
 	}
 
-	//´ÓÎÄ¼ş¶ÁÈ¡ÁªÏµÈË
-	void ReadContact()
+	// Loads the contacts from contact.txt.
+	//
+	// File format: one record per line, tab separated, in the order
+	//   name <TAB> phone <TAB> sex <TAB> age <TAB> address
+	// The list is terminated by a sentinel record whose first field is "off".
+	// A sex or address of "-1" means "not set" and is loaded as an empty
+	// string. Fields may contain spaces; only the tab is a separator.
+	//
+	// A missing or unreadable file is treated as "no contacts yet" so a
+	// fresh checkout starts with an empty list instead of failing.
+	// Returns the number of contacts loaded.
+	int ReadContact()
 	{
-		int c = 0;
-		freopen("contact.txt", "r", stdin);
-		while(1)
+		for (int i = 0; i < ContactCapacity; i++)
+			del(i);
+
+		std::ifstream file("contact.txt");
+		if (!file.is_open())
+			return 0;
+
+		int loaded = 0;
+		std::string line;
+		while (loaded < ContactCapacity && std::getline(file, line))
 		{
-			cin >> Person[c].name;
-			if ((Person[c].name == "off"))
-			{
-				Person[c].name = "\0";
+			// Strip the carriage return of files written on Windows.
+			if (!line.empty() && line.back() == '\r')
+				line.pop_back();
+			if (line.empty())
+				continue;
+
+			std::vector<std::string> fields = SplitRecord(line);
+			if (fields.empty() || fields[0] == "off")
 				break;
-			}
-			cin >> Person[c].phonenumber;
-			cin >> Person[c].sex;
-			if (Person[c].sex == "-1")
-				Person[c].sex = "\0";
-			cin >> Person[c].age;
-			cin >> Person[c].address;
-			if (Person[c].address == "-1")
-				Person[c].address = "\0";
-			c++;
-		} 
-		freopen("CON", "r", stdin);
+
+			Person[loaded].name = fields[0];
+			Person[loaded].phonenumber = FieldAt(fields, 1);
+
+			Person[loaded].sex = FieldAt(fields, 2);
+			if (Person[loaded].sex == "-1")
+				Person[loaded].sex = Blank_string;
+
+			Person[loaded].age = atoi(FieldAt(fields, 3).c_str());
+			if (Person[loaded].age < 0)
+				Person[loaded].age = Initate_Int;
+
+			Person[loaded].address = FieldAt(fields, 4);
+			if (Person[loaded].address == "-1")
+				Person[loaded].address = Blank_string;
+
+			loaded++;
+		}
+
+		return loaded;
 	}
 
-	//ÁªÏµÈËÊäÈë
-	void input(contact temp)
+	// Inserts a contact into the first free slot.
+	// Returns false when the list is already full.
+	bool input(contact temp)
 	{
-		Person[line()] = temp;
+		int slot = line();
+		if (slot >= ContactCapacity)
+			return false;
+		Person[slot] = temp;
+		return true;
 	}
 
-	//ÅĞ¶ÏÁªÏµÈËÊÇ·ñ´æÔÚ
+	// True when the slot at order holds a contact.
 	bool isexist(int order)
 	{
-		if (Person[order].age == -1)
-			return 0;
-		return 1;
+		if (order < 0 || order >= ContactCapacity)
+			return false;
+		return Person[order].age != Initate_Int;
 	}
 
-	//ÁªÏµÈËÊä³ö
+	// Returns a copy of the contact at order.
 	contact output(int order)
 	{
 		return Person[order];
 	}
 
-	//ÁĞ±íÊä³ö
-	void OutputList(CListCtrl& m_List, CStatic &Number)
+	// Fills the list control with the current contacts and updates the
+	// counter label.
+	void OutputList(CListCtrl& m_List, CStatic& Number)
 	{
 		int count = line();
-		if (count!= 0)
+		if (count != 0)
 		{
-			//ÌîÈëÁĞ±íĞÅÏ¢
+			// Fill in the list rows.
 			for (int Order = 0; Order < count; Order++)
 			{
 				CString tempcstr;
-				tempcstr.Format(_T("%d"), Order+1);
+				tempcstr.Format(_T("%d"), Order + 1);
 				m_List.InsertItem(Order, tempcstr);
-				/*tempcstr(Person[Order].f_name().c_str());*/
-				tempcstr.Format(_T("%s"),(CString) Person[Order].name.c_str());
+				tempcstr.Format(_T("%s"), (CString)Person[Order].name.c_str());
 				m_List.SetItemText(Order, 1, tempcstr);
 				tempcstr.Format(_T("%s"), (CString)Person[Order].phonenumber.c_str());
 				m_List.SetItemText(Order, 2, tempcstr);
@@ -189,218 +276,45 @@ public:
 		Number.SetWindowTextW(num);
 	}
 
-	//´æ»ØÎÄ¼ş
-	void SaveContact()
+	// Writes every contact back to contact.txt, followed by the "off"
+	// sentinel record.
+	//
+	// Returns false when the file could not be opened for writing, so the
+	// caller can warn instead of silently losing the data.
+	bool SaveContact()
 	{
-		int Order = 0;
+		std::ofstream file("contact.txt");
+		if (!file.is_open())
+			return false;
+
 		int Count = line();
-		freopen("contact.txt", "w", stdout);
-		while (Order < Count)
+		for (int Order = 0; Order < Count; Order++)
 		{
-			if (Person[ Order].sex == "\0")
-				Person[Order].sex = "-1";
-			if (Person[Order].address == "\0")
-				Person[Order].address = "-1";
-			cout << Person[Order].name << "\t" << Person[Order].phonenumber << "\t" << Person[Order].sex << "\t" << Person[Order].age << "\t" << Person[Order].address << endl;
-			Order++;
+			std::string sex = Person[Order].sex.empty() ? Initate_string : Person[Order].sex;
+			std::string address = Person[Order].address.empty() ? Initate_string : Person[Order].address;
+			file << Person[Order].name << "\t" << Person[Order].phonenumber << "\t"
+				<< sex << "\t" << Person[Order].age << "\t" << address << "\n";
 		}
-		cout << "off\t1\t1\t-1\t1" << endl;
-		freopen("CON", "w", stdout);
-	}
+		file << "off\t1\t1\t-1\t1\n";
 
-	void test01()
-	{
-		cout << "ÁªÏµÈËÁĞ±í£º" << endl;
-		cout << "\t±àºÅ" << "\tĞÕÃû" << "\tµç»°" << endl;
-
-		for (int b4 = 0; b4 < 10; b4++)
-		{
-			cout << "\t" << b4 + 1 << "\t" << Person[b4].name << " \t" << Person[b4].phonenumber << "\t" << Person[b4].age << endl;
-		}
-
+		file.flush();
+		return file.good();
 	}
 
 public:
 	static const int Initate_Int = -1;
-	const	string Blank_string ="\0";
+	const string Blank_string = "\0";
 	const string Initate_string = "-1";
-	int position =-1;
+	int position = -1;
+
 private:
-	contact Person[1000] = { };
+	contact Person[ContactCapacity] = { };
 };
 
-
-/*//µÇÂ½³É¹¦
-	if(b)
-	{
-		int c = 0;
-		freopen("contact.txt", "r", stdin);
-		while (Person[c - 1].name != "off")
-		{
-			cin >> Person[c].name;
-			cin >> Person[c].phonenumber;
-			cin >> Person[c].sex;
-			cin >> Person[c].age;
-			cin >> Person[c].address;
-			c++;
-		}
-		freopen("CON", "r", stdin);
-		//int
-		c = -1;
-		while (c != 0)
-		{
-			system("cls");
-			menu0();
-			cin >> c;
-			system("cls");
-			string name2, name3, name4;
-			switch (c)
-			{
-				//ĞÂ½¨ÁªÏµÈË
-			case 1:
-				cout << "ĞÂ½¨ÁªÏµÈË£º\n" << endl;
-				input();
-				break;
-
-				//²éÕÒÁªÏµÈË
-			case 2:
-				if (line() == 0)
-				{
-					empty();
-				}
-				else
-				{
-					cout << "²éÕÒÁªÏµÈË£º\n" << endl
-						<< "ÇëÊäÈëÁªÏµÈËĞÕÃû»òµç»°£º" << endl;
-					cin >> name2;
-					search(name2);
-				}
-				break;
-
-				//ĞŞ¸ÄÁªÏµÈË
-			case 3:
-				if (line() == 0)
-				{
-					empty();
-				}
-				else
-				{
-					cout << "ĞŞ¸ÄÁªÏµÈË:\n" << endl
-						<< "ÇëÊäÈëÁªÏµÈËĞÕÃû»òµç»°£º" << endl;
-					cin >> name3;
-					search(name3);
-					if (a7 != 999)
-					{
-						cout << "ÒÔÉÏÎª¸ÃÁªÏµÈËÔ­ĞÅÏ¢¡£" << endl;
-						cout << "ÇëÈ·ÈÏÊÇ·ñĞŞ¸Ä£º" << endl;
-						YoN();
-						if (b2 == 2)
-						{
-							break;
-						}
-						del(a7);
-						cout << "ÇëÊäÈëĞÂµÄĞÅÏ¢£º" << endl;
-						input();
-					}
-				}
-				break;
-
-				//É¾³ıÁªÏµÈË
-			case 4:
-				if (line() == 0)
-				{
-					empty();
-				}
-				else
-				{
-					cout << "É¾³ıÁªÏµÈË" << endl
-						<< "ÇëÊäÈëÁªÏµÈËĞÕÃû»òµç»°£º" << endl;
-					cin >> name4;
-					search(name4);
-					if (a7 != 999)
-					{
-						cout << endl << "ÇëÈ·ÈÏÊÇ·ñÉ¾³ı£º" << endl;
-						YoN();
-						if (b2 == 2)
-						{
-							break;
-						}
-						del(a7);
-						cout << "É¾³ı³É¹¦£¡" << endl;
-						system("pause");
-					}
-				}
-				break;
-
-				//Çå¿ÕÁªÏµÈË
-			case 5:
-				cout << "Çå¿ÕÁªÏµÈË" << endl;
-				if (line() == 0)
-				{
-					empty();
-				}
-				else
-				{
-					cout << endl << "ÇëÈ·ÈÏÊÇ·ñÇå¿Õ£º" << endl;
-					YoN();
-					if (b2 == 2)
-					{
-						break;
-					}
-					for (int b3 = 0; b3 < 1000; b3++)
-					{
-						del(b3);
-					}
-					cout << "Çå¿Õ³É¹¦£¡";
-					system("pause");
-				}
-				break;
-
-				//ÁªÏµÈËÁĞ±í
-			case 6:
-				cout << "ÁªÏµÈËÁĞ±í£º" << endl;
-				if (line() == 0)
-				{
-					empty();
-				}
-				else
-				{
-					cout << "\t±àºÅ" << "\tĞÕÃû" << "\tµç»°" << endl;
-
-					for (int b4 = 0; b4 < line(); b4++)
-					{
-						cout << "\t" << b4 + 1 << "\t" << Person[b4].name << " \t" << Person[b4].phonenumber << endl;
-					}
-					cout << "ÊäÈë ±àºÅ ²é¿´¾ßÌåĞÅÏ¢£¬»òÊäÈë 0 ·µ»ØÖ÷²Ëµ¥£º" << endl;
-					do
-					{
-						cout << "\nÇëÊäÈë¶ÔÓ¦Êı×Ö£º";
-						cin >> b2;
-						output(b2 - 1);
-					} while (b2 != 0);
-				}
-				break;
-
-				//ÉèÖÃÃÜÂë
-			case 7:
-				setcode();
-				break;
-			case 0:
-				break;
-			default:
-				cout << "ÇëÑ¡ÔñÕıÈ·µÄĞòºÅ£¡" << endl;
-				system("pause");
-			}
-			system("cls");
-		}
-		c = 0;
-		int Count = line();
-		freopen("contact.txt", "w", stdout);
-		while (c < Count)
-		{
-			cout << Person[c].name << "\t" << Person[c].phonenumber << "\t" << Person[c].sex << "\t" << Person[c].age << "\t" << Person[c].address << endl;
-			c++;
-		}
-		cout << "off 1 1 0 1" << endl;
-		freopen("CON", "w", stdout);
-	}*/
+// The single, application wide contact list.
+//
+// Defined in MFCApplication1.cpp and declared here so that every
+// translation unit shares one instance. Keeping the definition in the
+// precompiled header instead would create a separate copy per translation
+// unit, which breaks the dialogs that add and edit contacts.
+extern ContactList List;

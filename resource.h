@@ -1,6 +1,6 @@
 ﻿//{{NO_DEPENDENCIES}}
-// Microsoft Visual C++ 生成的包含文件。
-// 供 MFCApplication1.rc 使用
+// Microsoft Visual C++ generated include file.
+// Used by MFCApplication1.rc
 //
 //#include<Windows.h>
 #define SW_HIDE                         0

@@ -1,4 +1,5 @@
-﻿// SIGNSUCCESS.cpp: 实现文件
+﻿
+// SIGNSUCCESS.cpp: Implementation file for the notification dialog.
 //
 
 #include "pch.h"
@@ -7,7 +8,7 @@
 #include "SIGNSUCCESS.h"
 
 
-// SIGNSUCCESS 对话框
+// SIGNSUCCESS dialog
 
 IMPLEMENT_DYNAMIC(SIGNSUCCESS, CDialogEx)
 
@@ -34,18 +35,15 @@ BEGIN_MESSAGE_MAP(SIGNSUCCESS, CDialogEx)
 END_MESSAGE_MAP()
 
 
-// SIGNSUCCESS 消息处理程序
+// SIGNSUCCESS message handlers
 
-
+// The dialog closes itself when the timer set by Tip_s() fires.
 void SIGNSUCCESS::OnTimer(UINT_PTR nIDEvent)
 {
-	// TODO: 在此添加消息处理程序代码和/或调用默认值
-	OnCancel();
 	CDialogEx::OnTimer(nIDEvent);
+	OnCancel();
 }
 
-
-void SIGNSUCCESS::OnStnClickedInformation()
+void SIGNSUCCESS::OnStnClickedInformation(NMHDR* pNMHDR, LRESULT* pResult)
 {
-	// TODO: 在此添加控件通知处理程序代码
 }

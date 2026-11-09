@@ -1,5 +1,5 @@
 ﻿
-// MFCApplication1Dlg.cpp: 实现文件
+// MFCApplication1Dlg.cpp: Implementation file for the sign-in dialog.
 //
 
 #include "pch.h"
@@ -12,29 +12,24 @@
 #define new DEBUG_NEW
 #endif
 
-
-// 用于应用程序“关于”菜单项的 CAboutDlg 对话框
-
+// Dialog for the application "About" box
 class CAboutDlg : public CDialogEx
 {
 public:
 	CAboutDlg();
 
-// 对话框数据
+	// Dialog data
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_ABOUTBOX };
 #endif
 
-	protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
+protected:
+	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 
-// 实现
+	// Implementation
 protected:
 	DECLARE_MESSAGE_MAP()
-	
 public:
-//	afx_msg void OnClose();
-//	afx_msg void OnClose();
 };
 
 CAboutDlg::CAboutDlg() : CDialogEx(IDD_ABOUTBOX)
@@ -47,18 +42,17 @@ void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 }
 
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
-//	ON_WM_CLOSE()
-//ON_WM_CLOSE()
 END_MESSAGE_MAP()
 
+// CMFCApplication1Dlg dialog
 
-// CMFCApplication1Dlg 对话框
 CMFCApplication1Dlg::CMFCApplication1Dlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_MFCAPPLICATION1_DIALOG, pParent)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
-//变量和按钮匹配
+
+// Binds the member variables to the controls
 void CMFCApplication1Dlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
@@ -73,22 +67,20 @@ BEGIN_MESSAGE_MAP(CMFCApplication1Dlg, CDialogEx)
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDC_SIGNIN, &CMFCApplication1Dlg::OnBnClickedSignin)
 	ON_BN_CLICKED(IDC_EXIT, &CMFCApplication1Dlg::OnBnClickedExit)
-//	ON_EN_CHANGE(IDC_CODEIN, &CMFCApplication1Dlg::OnEnChangeCodein)
 	ON_WM_CLOSE()
 	ON_BN_CLICKED(IDC_CODEFOGOTTEN, &CMFCApplication1Dlg::OnBnClickedCodefogotten)
-	ON_BN_DOUBLECLICKED(IDC_CODEFOGOTTEN, &CMFCApplication1Dlg::OnBnDoubleclickedCodefogotten)
+	ON_BN_DOUBLECLICKED(IDC_CODEFOGOTTEN, &CMFCApplication1Dlg::OnDoubleclickedCodefogotten)
 END_MESSAGE_MAP()
 
-
-// CMFCApplication1Dlg 消息处理程序
+// CMFCApplication1Dlg message handlers
 
 BOOL CMFCApplication1Dlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
 
-	// 将“关于...”菜单项添加到系统菜单中。
+	// Add the "About..." menu item to the system menu.
 
-	// IDM_ABOUTBOX 必须在系统命令范围内。
+	// IDM_ABOUTBOX must be in the system command range.
 	ASSERT((IDM_ABOUTBOX & 0xFFF0) == IDM_ABOUTBOX);
 	ASSERT(IDM_ABOUTBOX < 0xF000);
 
@@ -106,15 +98,12 @@ BOOL CMFCApplication1Dlg::OnInitDialog()
 		}
 	}
 
-	// 设置此对话框的图标。  当应用程序主窗口不是对话框时，框架将自动
-	//  执行此操作
-	SetIcon(m_hIcon, TRUE);			// 设置大图标
-	SetIcon(m_hIcon, FALSE);		// 设置小图标
+	// Set the icon for this dialog. The framework does this automatically
+	// when the application's main window is not a dialog.
+	SetIcon(m_hIcon, TRUE);			// Big icon
+	SetIcon(m_hIcon, FALSE);		// Small icon
 
-	// TODO: 在此添加额外的初始化代码
-
-
-	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
+	return TRUE;  // return TRUE unless you set the focus to a control
 }
 
 void CMFCApplication1Dlg::OnSysCommand(UINT nID, LPARAM lParam)
@@ -130,19 +119,16 @@ void CMFCApplication1Dlg::OnSysCommand(UINT nID, LPARAM lParam)
 	}
 }
 
-// 如果向对话框添加最小化按钮，则需要下面的代码
-//  来绘制该图标。  对于使用文档/视图模型的 MFC 应用程序，
-//  这将由框架自动完成。
-
+// Paints the dialog's icon when the dialog is minimized.
 void CMFCApplication1Dlg::OnPaint()
 {
 	if (IsIconic())
 	{
-		CPaintDC dc(this); // 用于绘制的设备上下文
+		CPaintDC dc(this);
 
 		SendMessage(WM_ICONERASEBKGND, reinterpret_cast<WPARAM>(dc.GetSafeHdc()), 0);
 
-		// 使图标在工作区矩形中居中
+		// Draw the icon at the center of the client area.
 		int cxIcon = GetSystemMetrics(SM_CXICON);
 		int cyIcon = GetSystemMetrics(SM_CYICON);
 		CRect rect;
@@ -150,7 +136,6 @@ void CMFCApplication1Dlg::OnPaint()
 		int x = (rect.Width() - cxIcon + 1) / 2;
 		int y = (rect.Height() - cyIcon + 1) / 2;
 
-		// 绘制图标
 		dc.DrawIcon(x, y, m_hIcon);
 	}
 	else
@@ -159,69 +144,118 @@ void CMFCApplication1Dlg::OnPaint()
 	}
 }
 
-//当用户拖动最小化窗口时系统调用此函数取得光标
-//显示。
+// The system calls this function to obtain the cursor when the user drags
+// the minimized window.
 HCURSOR CMFCApplication1Dlg::OnQueryDragIcon()
 {
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-//回车键修改
+// Enter key handling
 void CMFCApplication1Dlg::OnOK()
 {
 	CMFCApplication1Dlg::OnBnClickedSignin();
 }
 
-//登陆键触发
+// Converts an edit control's text to a plain char buffer.
+//
+// Returns an empty string when the control holds no text. The caller owns
+// the returned buffer and must delete[] it.
+//
+// The previous implementation allocated this buffer with new[] and never
+// freed it, leaking memory on every sign-in attempt.
+static bool GetControlText(CEdit& control, std::string& out)
+{
+	out.clear();
+	CString str;
+	control.GetWindowTextW(str);
+	if (str.IsEmpty())
+		return false;
+
+	LPCTSTR p = str.GetBuffer(0);
+	str.ReleaseBuffer();
+	char* buffer = new char[str.GetLength() + 1];
+	strcpy_s(buffer, str.GetLength() + 1, CT2CA(p));
+	out = buffer;
+	delete[] buffer;
+	return true;
+}
+
+// Sign-in button handler
 void CMFCApplication1Dlg::OnBnClickedSignin()
 {
-	CButton *CheckStatu = (CButton*)GetDlgItem(IDC_NOTEREADED);
-	if (CheckStatu->GetCheck() == 1)
+	CButton* CheckStatu = (CButton*)GetDlgItem(IDC_NOTEREADED);
+	if (CheckStatu->GetCheck() != 1)
 	{
-		CString  str;
-		code.GetWindowTextW(str);
-		//cout << CStringTOchar(str);
-		char* temp;
-		LPCTSTR p = str.GetBuffer(0);
-		str.ReleaseBuffer();
-		temp = new char[str.GetLength() + 1];
-		strcpy_s(temp, str.GetLength() + 1, CT2CA(p));
-		char result[50];
-		memset(result, '\0', sizeof(result));
-		strcpy_s(result, (char*)temp);
-		if (checkcode(result) == 1)
+		Tip_m(TEXT("Please read the security agreement first!"));
+		return;
+	}
+
+	// No password has been set yet: treat the first entry as the initial
+	// password rather than rejecting it as wrong.
+	if (!HasStoredPassword())
+	{
+		std::string entered;
+		if (!GetControlText(code, entered) || entered.empty())
 		{
-			failuretip.SetWindowTextW(TEXT("登陆成功！"));
-			OnCancel();
+			failuretip.SetWindowTextW(TEXT("Please enter a password!"));
+			return;
 		}
-		else
-			failuretip.SetWindowTextW(TEXT("密码错误！ 请重试！"));
+		if (!setcode(entered.c_str()))
+		{
+			failuretip.SetWindowTextW(TEXT("Unsupported password. Use letters, digits and the symbols . , ? { } | ;"));
+			return;
+		}
+		failuretip.SetWindowTextW(TEXT("Password set. Signed in!"));
+		OnCancel();
+		return;
+	}
+
+	std::string entered;
+	if (!GetControlText(code, entered) || entered.empty())
+	{
+		failuretip.SetWindowTextW(TEXT("Please enter a password!"));
+		return;
+	}
+
+	if (checkcode(entered.c_str()))
+	{
+		failuretip.SetWindowTextW(TEXT("Signed in successfully!"));
+		OnCancel();
 	}
 	else
 	{
-		Tip_m(TEXT("请先阅读安全协议！"));
+		failuretip.SetWindowTextW(TEXT("Wrong password! Please try again."));
 	}
 }
 
-//登录界面退出键和关闭键
+// Exit button and window close handler
 void CMFCApplication1Dlg::OnBnClickedExit()
 {
-	exit(0);
+	// The contact list has not been modified yet at this point, so there is
+	// nothing to save.
+	CDialogEx::OnCancel();
 }
+
 void CMFCApplication1Dlg::OnClose()
 {
-	exit(0);
+	CDialogEx::OnCancel();
 }
 
-//忘记密码
+// "Forgot password" link.
+//
+// There is no recovery path: the stored password is obfuscated, not
+// encrypted, and the only way to reset it is to delete secret.txt and set a
+// new password on the next run.
 void CMFCApplication1Dlg::OnBnClickedCodefogotten()
 {
-	exit(0);
-}
-void CMFCApplication1Dlg::OnBnDoubleclickedCodefogotten()
-{
-	Tip_m(TEXT("不知道密码您偷看什么?"));
-	Tip_m(TEXT("去跪求解码吧！"));
-	exit(0);
+	Tip_m(TEXT("The password cannot be recovered. Delete secret.txt to set a new one."));
+	CDialogEx::OnCancel();
 }
 
+// Double clicking the link is treated as a deliberate attempt to get in.
+void CMFCApplication1Dlg::OnDoubleclickedCodefogotten()
+{
+	Tip_m(TEXT("There is no password recovery. Delete secret.txt to set a new one."));
+	CDialogEx::OnCancel();
+}

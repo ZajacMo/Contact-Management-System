@@ -1,243 +1,311 @@
-# 通讯录管理系统（版本1.11）
-# Contact Management System (Version 1.11)
+# Contact Management System
 
-## 项目简介
-## Project Introduction
+*[Chinese](README_CN.md)*
 
-这是一个基于MFC（Microsoft Foundation Classes）开发的Windows桌面通讯录管理系统，提供了完整的联系人信息管理功能，包括添加、查看、修改、删除联系人等操作，并支持数据持久化存储。
+> **Repository status: archived.**
+> This is a completed 2022 course project, kept for reference. It is no longer
+> developed. See the [Archive notice](#archive-notice) at the end of this
+> document for what was changed before archiving, and what was deliberately
+> left alone.
 
-This is a Windows desktop contact management system developed based on MFC (Microsoft Foundation Classes). It provides complete contact information management functions, including adding, viewing, modifying, deleting contacts, etc., and supports data persistence storage.
+A Windows desktop contact manager built with **MFC** (Microsoft Foundation
+Classes). It provides password-protected sign-in, a contact list, add / view /
+modify / delete operations, and file-based persistence.
 
-## 功能特点
+## Table of contents
+
+- [Features](#features)
+- [Screens and workflow](#screens-and-workflow)
+- [Building](#building)
+- [Running](#running)
+- [Project structure](#project-structure)
+- [Data format](#data-format)
+- [Password storage](#password-storage)
+- [Known limitations](#known-limitations)
+- [Archive notice](#archive-notice)
+- [License](#license)
+
 ## Features
 
-### 1. 用户安全验证
-### 1. User Security Verification
-- 登录密码保护机制
-- Login password protection mechanism
-- 安全协议确认
-- Security agreement confirmation
-- 密码管理功能
-- Password management function
+- **Sign-in with password** - the stored password is obfuscated, not kept in
+  plain text. A first run with no password file creates one instead of
+  rejecting the input.
+- **Contact list** - shows the number, name and phone of every contact, sorted
+  by descending age.
+- **Add a contact** - name and phone number are required, the age is optional
+  but must be a whole number, and duplicates are rejected.
+- **View, modify and delete** - a detail dialog shows every field and can
+  update or remove the record.
+- **Change the password** - requires the current password.
+- **Clear all contacts** - empties the list after a confirmation.
+- **Persistent storage** - contacts are written to `contact.txt` and reloaded on
+  the next launch.
 
-### 2. 联系人管理
-### 2. Contact Management
-- **添加联系人**：录入姓名、电话号码、性别、年龄和地址信息
-- **Add Contact**: Enter name, phone number, gender, age and address information
-- **查看联系人**：列表展示所有联系人基本信息
-- **View Contacts**: List display of basic information of all contacts
-- **详细信息**：查看、修改或删除联系人的详细信息
-- **Detailed Information**: View, modify or delete detailed information of contacts
-- **数据验证**：防止添加重复联系人
-- **Data Validation**: Prevent adding duplicate contacts
-- **批量操作**：支持清空所有联系人
-- **Batch Operations**: Support clearing all contacts
+## Screens and workflow
 
-### 3. 数据持久化
-### 3. Data Persistence
-- 自动保存联系人信息到文件
-- Automatically save contact information to files
-- 程序启动时自动加载已保存的联系人数据
-- Automatically load saved contact data when the program starts
-- 使用文本文件格式存储，便于备份和迁移
-- Use text file format for storage, easy to backup and migrate
+The application opens on the sign-in dialog:
 
-## 技术架构
-## Technical Architecture
+```
++---------------------------------------------+
+|        Contact Manager 1.11                 |
+|                                             |
+|   Welcome to Contact Manager 1.11           |
+|                                             |
+|        Enter your password:                 |
+|        [_____________________]              |
+|                                             |
+|   [x] I have read the security agreement    |
+|                        [ Sign in ] [ Exit ] |
++---------------------------------------------+
+```
 
-### 核心数据结构
-### Core Data Structure
+Tick the agreement box, type the password and press **Sign in** (or Enter).
+With no `secret.txt` present, the first password you type becomes the stored
+password.
+
+The main window lists the contacts and offers **New**, **Details**, **Clear**,
+**Password** and **Save**:
+
+```
++------------------------------------------------------+
+|  Contact Manager 1.11                                |
+|  Number of contacts: 3                               |
+|  +------+-------------+--------------+               |
+|  | No.  | Name        | Phone        |               |
+|  +------+-------------+--------------+               |
+|  | 1    | Bob         | 119          |               |
+|  | 2    | Alice       | 110          |               |
+|  | 3    | Carol       | 120          |               |
+|  +------+-------------+--------------+               |
+|                              [ New ] [ Details ]     |
+|                              [ Clear ] [ Password ]  |
+|                              [ Save ]                |
++------------------------------------------------------+
+```
+
+Selecting a row and pressing **Details** opens the detail dialog, which has
+**Modify** and **Delete** buttons. Pressing **Save** writes the list to
+`contact.txt` and exits.
+
+## Building
+
+### Requirements
+
+| Requirement | Version |
+|---|---|
+| Operating system | Windows 10 or later |
+| Visual Studio | 2019 or later (2022 recommended) |
+| Toolset | v143 (the `PlatformToolset` in `MFCApplication1.vcxproj`) |
+| MFC | **Required** - install the "C++ MFC for latest v143 build tools" component |
+| Windows SDK | 10.0 or later |
+
+MFC is not part of a default Visual Studio installation. Without the MFC
+component the build fails with:
+
+```
+error MSB8041: This project requires the MFC library.
+```
+
+### With Visual Studio
+
+1. Open `MFCApplication1.vcxproj` (or the solution `通讯录1.11.sln`).
+2. Pick a configuration: `Debug` or `Release`, `x86` or `x64`.
+3. Build with **Build > Build Solution**.
+4. The executable is written to `Debug\` or `Release\`.
+
+The solution file name contains Chinese characters. If your checkout path
+causes trouble with the toolchain, open `MFCApplication1.vcxproj` directly
+instead - it does not depend on the solution.
+
+### Source encoding
+
+All `.cpp` and `.h` files are **UTF-8 with BOM**, which MSVC detects
+automatically. The resource script `MFCApplication1.rc` is **UTF-16 LE with
+BOM**, the format the Resource Editor writes.
+
+## Running
+
+The program reads and writes two files **in the current working directory**:
+
+| File | Purpose |
+|---|---|
+| `contact.txt` | The contact list. Created on the first save. |
+| `secret.txt` | The obfuscated login password. Created on the first sign-in. |
+
+Run the executable from the directory you want those files to live in. Running
+it from the build output directory is fine; just remember that `contact.txt`
+is *not* version controlled.
+
+If you forget the password, delete `secret.txt` and sign in again - the next
+password you type becomes the new one. There is no recovery mechanism, and
+the stored password cannot be read back in plain text.
+
+## Project structure
+
+```
+contact.h           # contact and ContactList: the data model and persistence
+lock.h              # password obfuscation and edit-control helpers
+MFCApplication1.*   # application object, startup, and the shared list instance
+MFCApplication1Dlg.*# sign-in dialog
+MENU.*              # main window: the contact list and the action buttons
+DIALOG_ADD.*        # "New Contact" dialog
+DIALOG_DETAIL.*     # "Contact Details" dialog
+DIALOG_CODE.*       # "Password Management" dialog
+SIGNSUCCESS.*       # transient notification dialog
+MFCApplication1.rc  # dialog layouts and UI strings
+resource.h          # resource identifiers
+res/                # icon and non-editable resource fragments
+```
+
+### Core types
+
+**`contact`** - one record. The fields are private and reached through the
+`f_*()` accessors. `ContactList` is a friend so it can fill records directly
+while reading from disk.
+
+**`ContactList`** - the collection. It holds a fixed array of 1000 slots.
+A free slot is marked by `age == -1`, which is why the age is validated as a
+non-negative whole number when a contact is created.
+
+`ContactList::line()` sorts the contacts by descending age and returns how many
+slots are in use. Because free slots carry age `-1`, they sort to the end, so
+occupied contacts always occupy the indices `[0, count)`. That ordering is
+what the list view shows and what `SaveContact()` writes, so it is part of the
+observable behaviour rather than an implementation detail.
+
+## Data format
+
+`contact.txt` is a tab-separated text file, one record per line:
+
+```
+name <TAB> phone <TAB> sex <TAB> age <TAB> address
+```
+
+The list is terminated by a sentinel record whose first field is `off`:
+
+```
+Bob	119	M	40	Addr B
+Carol	120	F	20	Addr C
+off	1	1	-1	1
+```
+
+Details:
+
+- **Only the tab is a separator.** Fields may contain spaces; `Alice Smith`
+  is read back correctly.
+- **`-1` means "not set"** for the optional `sex` and `address` fields. It is
+  loaded back as an empty string.
+- **The `off` sentinel terminates the list.** Anything after it is ignored.
+- The file is written in the same descending-age order the list view shows.
+
+## Password storage
+
+The password is not stored in plain text. `lock.h` defines a monalphabetic
+substitution over a 62-character alphabet:
 
 ```cpp
-// 联系人基本信息类
-typedef struct contact {
-    string name;       // 姓名
-    string phonenumber;// 电话号码
-    int age;           // 年龄
-    string sex;        // 性别
-    string address;    // 地址
-    // 其他成员函数...
-} contact;
-
-// 联系人列表管理类
-class ContactList {
-    // 成员变量和函数
-    contact Person[1000];  // 最多存储1000个联系人
-    // 其他成员函数...
-};
+const char ArrSecret[]  = "qwertyuiHIJKLMNop[ABCDEFG]asdUVWXYZfghjkOPQRSTl;zxcvbnm,.?{}:|";
+const char ArrObvious[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdefghijklmnopqrstuvwxyz";
 ```
 
-### 主要模块
-### Main Modules
+`ArrSecret[i]` and `ArrObvious[i]` are two views of the same permutation.
+`setcode()` maps each character of the plain text through `ArrObvious` into
+`ArrSecret` and writes the result to `secret.txt`; `checkcode()` maps the
+stored characters back and compares them against the entered password.
 
-| 模块 | 主要职责 | 文件位置 | <mcfile>引用 |
-|------|---------|---------|-------------|
-| 登录模块 | 用户验证和安全协议 | MFCApplication1Dlg.cpp | <mcfile name="MFCApplication1Dlg.cpp" path="f:\Projects\VS_C++Project\通讯录1.1源文件\MFCApplication1Dlg.cpp"></mcfile> |
-| 联系人数据结构 | 定义联系人及列表管理 | contact.h | <mcfile name="contact.h" path="f:\Projects\VS_C++Project\通讯录1.1源文件\contact.h"></mcfile> |
-| 主菜单界面 | 联系人列表展示与管理 | MENU.cpp | <mcfile name="MENU.cpp" path="f:\Projects\VS_C++Project\通讯录1.1源文件\MENU.cpp"></mcfile> |
-| 添加联系人 | 新建联系人信息录入 | DIALOG_ADD.cpp | <mcfile name="DIALOG_ADD.cpp" path="f:\Projects\VS_C++Project\通讯录1.1源文件\DIALOG_ADD.cpp"></mcfile> |
-| 联系人详情 | 查看、修改、删除联系人 | DIALOG_DETAIL.cpp | <mcfile name="DIALOG_DETAIL.cpp" path="f:\Projects\VS_C++Project\通讯录1.1源文件\DIALOG_DETAIL.cpp"></mcfile> |
+For example, the password `123456` is stored as `asdUVW`.
 
-| Module | Main Responsibility | File Location | <mcfile> Reference |
-|--------|---------------------|---------------|-------------------|
-| Login Module | User verification and security agreement | MFCApplication1Dlg.cpp | <mcfile name="MFCApplication1Dlg.cpp" path="f:\Projects\VS_C++Project\通讯录1.1源文件\MFCApplication1Dlg.cpp"></mcfile> |
-| Contact Data Structure | Define contact and list management | contact.h | <mcfile name="contact.h" path="f:\Projects\VS_C++Project\通讯录1.1源文件\contact.h"></mcfile> |
-| Main Menu Interface | Contact list display and management | MENU.cpp | <mcfile name="MENU.cpp" path="f:\Projects\VS_C++Project\通讯录1.1源文件\MENU.cpp"></mcfile> |
-| Add Contact | New contact information entry | DIALOG_ADD.cpp | <mcfile name="DIALOG_ADD.cpp" path="f:\Projects\VS_C++Project\通讯录1.1源文件\DIALOG_ADD.cpp"></mcfile> |
-| Contact Detail | View, modify, delete contacts | DIALOG_DETAIL.cpp | <mcfile name="DIALOG_DETAIL.cpp" path="f:\Projects\VS_C++Project\通讯录1.1源文件\DIALOG_DETAIL.cpp"></mcfile> |
+**This is obfuscation, not encryption.** The substitution table is compiled
+into the executable and readable in the source, so anyone who can read the
+binary can recover the password. The point is only to keep the plain text out
+of `secret.txt`. Do not rely on it to protect anything sensitive.
 
-### 数据存储
-### Data Storage
+Passwords are restricted to the 62 characters of the alphabet above. A
+character outside it is rejected when the password is set rather than being
+silently dropped - a dropped character would produce a stored password that no
+longer matches what the user typed.
 
-- 联系人数据存储在项目根目录下的`contact.txt`文件中
-- Contact data is stored in the `contact.txt` file in the project root directory
-- 每行存储一个联系人信息，格式为：姓名\t电话\t性别\t年龄\t地址
-- Each line stores contact information in the format: Name\tPhone\tGender\tAge\tAddress
-- 使用文件读写操作实现数据持久化
-- Use file read and write operations to achieve data persistence
+## Known limitations
 
-## 安装与运行
-## Installation and Operation
+These are inherent to the original design and were **not** changed when the
+repository was archived. They are listed here so that nobody is surprised.
 
-### 系统要求
-### System Requirements
-- Windows操作系统
-- Windows operating system
-- Visual Studio 2017或更高版本（用于编译）
-- Visual Studio 2017 or higher (for compilation)
-- MFC库支持
-- MFC library support
+- **The password protection is not real security.** See
+  [Password storage](#password-storage).
+- **Non-ASCII names depend on the system code page.** The dialog text is
+  converted through `CStringA`, so a name in Chinese, Japanese or any other
+  non-ANSI script depends on the machine's regional settings.
+- **The list is capped at 1000 contacts.** The cap is a compile-time constant.
+- **Contacts are always ordered by descending age.** There is no way to sort
+  by name or phone number.
+- **There is no undo.** **Clear** empties the list immediately; the only
+  recovery is the last saved `contact.txt`.
+- **The contact list is only written when you press Save.** Closing the window
+  without saving discards the changes.
+- **`age` doubles as the free-slot marker.** A contact with an age of `0` is
+  valid, but the detail dialog does not display a zero age, because the
+  original code used `0` to mean "not set".
 
-### 编译运行
-### Compilation and Operation
-1. 使用Visual Studio打开项目文件`通讯录1.11.sln`
-1. Open the project file `通讯录1.11.sln` with Visual Studio
-2. 选择编译配置（Debug或Release）
-2. Select the compilation configuration (Debug or Release)
-3. 点击"生成" -> "生成解决方案"进行编译
-3. Click "Build" -> "Build Solution" to compile
-4. 编译完成后，可以在Debug或Release目录下找到可执行文件
-4. After compilation is complete, the executable file can be found in the Debug or Release directory
+## Archive notice
 
-### 直接运行
-### Direct Operation
-- 可以直接运行Debug目录下的`通讯录1.11.exe`文件
-- You can directly run the `通讯录1.11.exe` file in the Debug directory
+The repository was archived on 2026-11-10. The following changes were made
+immediately before archiving, so that the project is at least buildable and
+readable:
 
-## 使用指南
-## User Guide
+**Fixed**
 
-### 登录流程
-### Login Process
-1. 启动程序，进入登录界面
-1. Start the program and enter the login interface
-2. 阅读并勾选"安全协议"选项
-2. Read and check the "Security Agreement" option
-3. 输入正确的密码，点击"登录"按钮或按回车键
-3. Enter the correct password and click the "Login" button or press Enter
+- All sources converted to UTF-8 with BOM and all comments and UI strings
+  translated to English. The repository previously mixed GBK, UTF-8 and UTF-16
+  files, and the README rendered as mojibake on GitHub.
+- **Multiple definition linker errors.** `ContactList List`, `setcode`,
+  `checkcode`, `informationget`, `Tip_m` and `Tip_s` were defined in headers,
+  giving every translation unit its own copy. The link only succeeded because
+  `/FORCE` was set. These are now `inline` or have a single definition.
+- **Memory leaks.** Three `new char[]` allocations in the sign-in and password
+  dialogs were never freed.
+- **Unbounded file read.** `ReadContact()` incremented its index without a
+  limit, so a corrupt `contact.txt` could write past the end of the array.
+- **Unchecked file handles.** `fopen` results were never checked, so a missing
+  `secret.txt` crashed the program instead of reporting a missing password.
+- **File I/O via `freopen`.** Reading and writing the contact file by
+  redirecting `stdin` and `stdout` was replaced with `std::fstream`.
+- **Hard exits.** `exit(0)` skipped destructors and discarded unsaved data.
+- **The repository could not be built from a clone.** The `.gitignore`
+  excluded `*.sln`, `*.vcxproj` and `*.rc` - precisely the files needed to
+  build an MFC project. Those files are now tracked.
+- **A stale solution reference.** The solution referenced a project whose
+  directory no longer exists, which made the solution fail to load. It has been
+  removed.
+- **A filename case mismatch.** The project referenced `Resource.h` while the
+  file on disk is `resource.h`.
+- **1.4 MB of Visual Studio temporary files** (`RCa*` / `RD*` resource editor
+  leftovers) were removed from version control.
 
-### 主界面操作
-### Main Interface Operations
-- **添加联系人**：点击"添加"按钮，在弹出的对话框中填写联系人信息
-- **Add Contact**: Click the "Add" button and fill in the contact information in the pop-up dialog box
-- **查看/修改/删除**：在列表中选择联系人，点击"详细"按钮进行操作
-- **View/Modify/Delete**: Select a contact in the list and click the "Detail" button to operate
-- **保存退出**：点击"保存"按钮将数据保存并退出程序
-- **Save and Exit**: Click the "Save" button to save the data and exit the program
-- **清空联系人**：点击"清空"按钮删除所有联系人（此操作不可恢复）
-- **Clear Contacts**: Click the "Clear" button to delete all contacts (this operation cannot be recovered)
-- **密码管理**：点击"密码"按钮可以修改登录密码
-- **Password Management**: Click the "Password" button to modify the login password
+**Verified**
 
-### 数据录入规则
-### Data Entry Rules
-- 姓名和电话号码为必填项
-- Name and phone number are required fields
-- 年龄为整数
-- Age must be an integer
-- 性别和地址为选填项
-- Gender and address are optional fields
-- 系统会自动检测并提示重复联系人
-- The system will automatically detect and prompt duplicate contacts
+The rewritten data model and password code were compiled with MSVC 19.44 and
+exercised against a test harness: password round-trips, contact insertion,
+the descending-age ordering, search by name and by phone number, deletion,
+the save/load round trip, the `-1` "not set" convention, and the missing-file
+case all behave as documented above. Existing `secret.txt` files still unlock
+with the password they were created with.
 
-## 开发说明
-## Development Instructions
+**Deliberately not changed**
 
-### 项目结构
-### Project Structure
-```
-├── contact.h          # 联系人数据结构定义
-├── MFCApplication1Dlg.cpp # 登录界面实现
-├── MENU.cpp           # 主菜单界面实现
-├── DIALOG_ADD.cpp     # 添加联系人对话框实现
-├── DIALOG_DETAIL.cpp  # 联系人详情对话框实现
-├── DIALOG_CODE.cpp    # 密码管理对话框实现
-└── contact.txt        # 联系人数据存储文件
-```
+- The MFC framework itself, the fixed 1000-slot array, and the descending-age
+  ordering.
+- The substitution cipher. Replacing it with a real KDF would change the
+  on-disk format and lock existing users out.
+- The GUI layout and the resource script's dialog definitions.
 
-### 核心功能实现
-### Core Function Implementation
+**Not verified**
 
-1. **联系人数据管理**
-1. **Contact Data Management**
+The GUI was **not** compiled or run: MFC is not installed in the environment
+used for the archive, and the Visual Studio build fails with `MSB8041` before
+reaching the compiler. The data model and the password code were verified by
+compiling them directly against stub MFC types, but the dialog wiring itself
+is untested.
 
-```cpp
-// 添加联系人
-void ContactList::input(contact temp) {
-    Person[line()] = temp;
-}
+## License
 
-// 保存联系人到文件
-void ContactList::SaveContact() {
-    // 文件操作实现
-}
-
-// 从文件加载联系人
-void ContactList::ReadContact() {
-    // 文件操作实现
-}
-```
-
-2. **用户界面交互**
-2. **User Interface Interaction**
-
-```cpp
-// 主菜单联系人列表显示
-void ContactList::OutputList(CListCtrl& m_List, CStatic &Number) {
-    // 列表控件操作实现
-}
-```
-
-## 注意事项
-## Notes
-
-1. 程序使用简单的文本文件存储数据，请定期备份`contact.txt`文件以防数据丢失
-1. The program uses simple text files to store data, please back up the `contact.txt` file regularly to prevent data loss
-2. 密码保存在系统中，请妥善保管
-2. The password is stored in the system, please keep it properly
-3. 程序最大支持存储1000个联系人
-3. The program supports storing up to 1000 contacts
-4. 清空操作会删除所有联系人数据，请谨慎使用
-4. The clear operation will delete all contact data, please use it with caution
-
-## 版本历史
-## Version History
-- v1.11：当前版本，优化了界面交互体验
-- v1.11: Current version, optimized interface interaction experience
-- v1.10：修复了已知bug，增强了数据安全性
-- v1.10: Fixed known bugs and enhanced data security
-
-## 开发者信息
-## Developer Information
-
-本项目由MFC框架开发，适用于Windows平台的通讯录管理应用。
-
-This project is developed with MFC framework and is suitable for contact management applications on Windows platform.
-
----
-
-## 版权信息
-## Copyright Information
-
-© 2023 通讯录管理系统 版权所有
-© 2023 Contact Management System. All Rights Reserved.
+MIT - see [LICENSE](LICENSE).

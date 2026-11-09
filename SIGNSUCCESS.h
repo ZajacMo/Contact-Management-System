@@ -2,16 +2,16 @@
 #include "afxdialogex.h"
 
 
-// SIGNSUCCESS 对话框
+// SIGNSUCCESS dialog
 
 class SIGNSUCCESS : public CDialogEx
 {
 	DECLARE_DYNAMIC(SIGNSUCCESS)
 
 public:
-	SIGNSUCCESS(CWnd* pParent = nullptr);   // 标准构造函数
+	SIGNSUCCESS(CWnd* pParent = nullptr);   // Standard constructor
 	virtual ~SIGNSUCCESS();
-// 对话框数据
+// Dialog data
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_SIGNSUCCEEDED };
 #endif
@@ -20,13 +20,12 @@ public:
 		Information.SetWindowTextW(str);
 	}
 protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
+	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	DECLARE_MESSAGE_MAP()
 
 public:
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	CStatic Information;
-	afx_msg void OnStnClickedInformation();
+	afx_msg void OnStnClickedInformation(NMHDR* pNMHDR, LRESULT* pResult);
 	CString tip;
 };
-

@@ -1,275 +1,139 @@
-#pragma once
-#include<string>
-#include<iostream>
+ï»¿#pragma once
+#include <string>
+#include <iostream>
+#include <cstdio>
 using namespace std;
-const int LenthMAX = 30, ListLenth = 62;
+
+// Maximum accepted password length (including the terminating null).
+const int LenthMAX = 30;
+// Size of the substitution alphabet.
+const int ListLenth = 62;
+
+// Monalphabetic substitution tables used to obfuscate the login password on disk.
+//
+// ArrSecret[i] <-> ArrObvious[i]. The two strings are permutations of each
+// other, so the mapping is reversible: setcode() encrypts, checkcode() decrypts.
+//
+// NOTE: this is obfuscation, not encryption. The key is compiled into the
+// binary and both tables are readable in the source, so anyone who can read
+// the executable can recover the password. Its purpose is to keep the plain
+// text out of secret.txt, nothing more.
 const char ArrSecret[] = "qwertyuiHIJKLMNop[ABCDEFG]asdUVWXYZfghjkOPQRSTl;zxcvbnm,.?{}:|";
 const char ArrObvious[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdefghijklmnopqrstuvwxyz";
-//´ÓÊäÈë¿ò¶ÁÈ¡ÄÚÈİ
-string informationget(CEdit& tempedit)
+
+// True when ch belongs to the supported password alphabet.
+//
+// Passwords are restricted to this alphabet on purpose. The stored form is
+// read back with a whitespace-delimited scan, so a password containing a space
+// could never be read back correctly. Characters outside the alphabet are
+// rejected when the password is set instead of being silently dropped: a
+// dropped character would produce a stored password that no longer matches
+// what the user typed, locking the user out of their own data.
+inline bool IsSupportedPasswordChar(char ch)
+{
+	for (int i = 0; i < ListLenth; i++)
+		if (ArrObvious[i] == ch)
+			return true;
+	return false;
+}
+
+// Reads the text of an MFC edit control into a std::string.
+//
+// NOTE: this converts through the system ANSI code page, so non-ASCII names
+// depend on the machine's regional settings. See "Known limitations" in
+// README.md.
+inline string informationget(CEdit& tempedit)
 {
 	CString s;
 	tempedit.GetWindowTextW(s);
 	string result = (CStringA)s;
 	return result;
 }
-//char * CStringTOchar(CString  str)
-//{
-//	char* temp;
-//	LPCTSTR p = str.GetBuffer(0);
-//	str.ReleaseBuffer();
-//	temp = new char[str.GetLength() + 1];
-//	strcpy_s(temp, str.GetLength() + 1, CT2CA(p));
-//	char result[50];
-//	memset(result, '\0', sizeof(result));
-//	strcpy_s(result, (char*)temp);
-//	return result;
-//}
-void  setcode(char ArrCIN[LenthMAX])
+
+// Writes the obfuscated form of ArrCIN to secret.txt.
+//
+// Returns false, leaving any existing file untouched, when the password is
+// empty, too long, or contains a character outside the supported alphabet.
+inline bool setcode(const char* ArrCIN)
 {
-	int l = strlen(ArrCIN);
-	FILE* txt;
-	txt = fopen("secret.txt", "w+");
+	int l = (int)strlen(ArrCIN);
+	if (l == 0 || l >= LenthMAX)
+		return false;
+	for (int i = 0; i < l; i++)
+		if (!IsSupportedPasswordChar(ArrCIN[i]))
+			return false;
+
+	FILE* txt = fopen("secret.txt", "w+");
+	if (txt == nullptr)
+		return false;
+
 	for (int Order = 0; Order < l; Order++)
 	{
-		int CheckTimes = 0;
-		while (CheckTimes < ListLenth)
+		for (int CheckTimes = 0; CheckTimes < ListLenth; CheckTimes++)
 		{
 			if (ArrCIN[Order] == ArrObvious[CheckTimes])
 			{
 				fprintf(txt, "%c", ArrSecret[CheckTimes]);
-				CheckTimes = ListLenth;
 				break;
 			}
-			CheckTimes++;
 		}
 	}
+
 	fclose(txt);
+	return true;
 }
-bool checkcode(char ArrCIN[])
+
+// Verifies the plain text ArrCIN against the obfuscated password stored in
+// secret.txt.
+//
+// Returns false when secret.txt is missing, empty, or unreadable. A missing
+// file is reported through HasStoredPassword() so the caller can offer a
+// first-run setup instead of treating it as a wrong password.
+inline bool checkcode(const char* ArrCIN)
 {
-	FILE* txt;
-	char ArrFIN[LenthMAX]="\0";
-	ArrFIN[LenthMAX - 1] = '\0';
-	txt = fopen("secret.txt", "r");
-	fscanf_s(txt, "%s", ArrFIN, LenthMAX);
-	fclose(txt);
-	/*CFile File;
-	char* temp01 = "secere.txt";
-	CString temp(temp01);
-	File.Open(temp, CFile::modeRead);
-	File.Read(ArrFIN, LenthMAX);
-	File.Close();*/
-	int LenthArrFIN = strlen(ArrFIN);
-	int LenthArrCIN = strlen(ArrCIN);
-	if (LenthArrFIN == LenthArrCIN)
+	FILE* txt = fopen("secret.txt", "r");
+	if (txt == nullptr)
+		return false;
+
+	char ArrFIN[LenthMAX] = "\0";
+	if (fscanf_s(txt, "%s", ArrFIN, LenthMAX) != 1)
 	{
-		int CorrectTimes = 0;
-		for (int Order = 0; Order < LenthArrFIN; Order++)
-		{
-			int CheckTimes = 0;
-			while (CheckTimes < ListLenth)
-			{
-				if (ArrFIN[Order] == ArrSecret[CheckTimes])
-				{
-					if (ArrCIN[Order] == ArrObvious[CheckTimes])
-						CorrectTimes++;
-					CheckTimes = ListLenth;
-				}
-				else
-					CheckTimes++;
-			}
-		}
-		if (CorrectTimes == LenthArrFIN)
-			return 1;
+		fclose(txt);
+		return false;
 	}
-	return 0;
-}
+	fclose(txt);
 
-/*#include<string>
-#include<cstdio>
-#include<iostream>
-using namespace std;
+	int LenthArrFIN = (int)strlen(ArrFIN);
+	int LenthArrCIN = (int)strlen(ArrCIN);
+	if (LenthArrFIN == 0 || LenthArrFIN != LenthArrCIN)
+		return false;
 
-//¶¨ÒåÁªÏµÈË
-struct contact
-{
-	string name;
-	string phonenumber;
-	int age;
-	string sex;
-	string address;
-};
-
-//¶¨ÒåÊı×é
-contact array2[1000] = { };
-
-//°´ÕÕÄêÁäÅÅÁĞÁªÏµÈË ²¢ Êä³ö×î½üµÄ¿ÕÁªÏµÈËÏÂ±ê 
-int line()
-{
-
-	//°´ÕÕÄêÁä´Ó´óµ½Ğ¡Ã°ÅİÅÅĞò
-	for (int Order = 0; Order < 999; Order++)
+	int CorrectTimes = 0;
+	for (int Order = 0; Order < LenthArrFIN; Order++)
 	{
-		for (int j1 = 0; j1 < 999 - Order; j1++)
+		for (int CheckTimes = 0; CheckTimes < ListLenth; CheckTimes++)
 		{
-
-			//Á½Á½½»»»
-			if (array2[j1].age < array2[j1 + 1].age)
+			if (ArrFIN[Order] == ArrSecret[CheckTimes])
 			{
-				struct contact temp = array2[j1];
-				array2[j1] = array2[j1 + 1];
-				array2[j1 + 1] = temp;
+				if (ArrCIN[Order] == ArrObvious[CheckTimes])
+					CorrectTimes++;
+				break;
 			}
 		}
 	}
-	int num1=0;
-	//ÕÒµ½×î½üµÄ¿ÕÁªÏµÈËÏÂ±ê ²¢¸³¸ønum1
-	for (int m1 = 0; m1 < 999; m1++)
-	{
-		if (array2[m1].age == 0)
-		{
-			num1 = m1;
-			break;
-		}
-	}
 
-	//Êä³ö×î½üµÄ¿ÕÁªÏµÈËÏÂ±ê 
-	return num1;
+	return CorrectTimes == LenthArrFIN;
 }
 
-//¶¨ÒåÖµ
-int b1 = 0, CorrectTimes = 0, a7 = 0;
-string a5 = "empty";
-
-//É¾³ıÁªÏµÈËĞÅÏ¢
-void del(int a6)
+// True when a password file already exists on disk.
+//
+// Used to detect a first run: with no secret.txt the login screen offers to
+// create the initial password instead of rejecting every attempt.
+inline bool HasStoredPassword()
 {
-	array2[a6].address = a5;
-	array2[a6].age = 0;
-	array2[a6].name = a5;
-	array2[a6].phonenumber = a5;
-	array2[a6].sex = a5;
+	FILE* txt = fopen("secret.txt", "r");
+	if (txt == nullptr)
+		return false;
+	fclose(txt);
+	return true;
 }
-
-//ÁªÏµÈËÊä³ö 
-void output(int a1)
-{
-	if (a1 != -1)
-	{
-		if (array2[a1].age != 0)
-		{
-			cout << "\tĞÕÃû£º" << array2[a1].name << endl
-				<< "\tµç»°£º" << array2[a1].phonenumber << endl
-				<< "\tĞÔ±ğ£º" << array2[a1].sex << endl
-				<< "\tÄêÁä£º" << array2[a1].age << endl
-				<< "\t×¡Ö·£º" << array2[a1].address << endl;
-		}
-		else
-			cout << "²éÎŞ´ËÈË!" << endl;
-	}
-	//cout << a1 << endl;						//²âÊÔ´úÂë
-
-}
-
-//ÁªÏµÈËÊäÈë
-void input()
-{
-	do
-	{
-		int b4 = line();
-
-		cout << "ÇëÊäÈëÁªÏµÈËĞÕÃû£º";
-		cin >> array2[b4].name;
-
-		cout << "ÇëÊäÈëÁªÏµÈËµç»°£º";
-		cin >> array2[b4].phonenumber;
-
-		cout << "ÇëÊäÈëÁªÏµÈËĞÔ±ğ£º";
-		cin >> array2[b4].sex;
-		//ÅĞ¶ÏĞÔ±ğÊäÈëÊÇ·ñÕıÈ·
-		while (array2[b4].sex != "ÄĞ" && array2[b4].sex != "Å®")
-		{
-			cout << "ÊäÈëÄÚÈİ´íÎó£¡" << endl
-				<< "ÇëÖØĞÂÊäÈëÁªÏµÈËĞÔ±ğ£º";
-			cin >> array2[b4].sex;
-		}
-
-		cout << "ÇëÊäÈëÁªÏµÈËÄêÁä£º";
-		cin >> array2[b4].age;
-		//ÅĞ¶ÏÄêÁäÊäÈëÊÇ·ñÕıÈ·
-		while (array2[b4].age > 150 || array2[b4].age <= 0)
-		{
-			cout << "ÊäÈëÄÚÈİ´íÎó£¡" << endl
-				<< "ÇëÖØĞÂÊäÈëÁªÏµÈËÄêÁä£º";
-			cin >> array2[b4].age;
-		}
-
-		cout << "ÇëÊäÈëÁªÏµÈË×¡Ö·£º";
-		cin >> array2[b4].address;
-
-		cout << endl << "\nÇëÈ·ÈÏĞÅÏ¢ÊÇ·ñÕıÈ·£º" << endl;
-		output(b4);
-		cout << "\n1.ÕıÈ·²¢·µ»Ø²Ëµ¥" << "\t2.²»ÕıÈ·²¢ÖØĞÂĞ´Èë" << endl;
-		cin >> b1;
-		if (b1 == 2)
-		{
-			del(b4);
-		}
-	} while (b1 == 2);
-}
-
-//²éÕÒÁªÏµÈË £¨ÏÂ±êa7£©
-void search(string a2)
-{
-
-	//ÅĞ¶ÏÁªÏµÈËÊÇ·ñ´æÔÚ
-	for (int Order = 0; Order <= 999; Order++)
-	{
-		a7 = Order;
-		if (array2[Order].name == a2 || array2[Order].phonenumber == a2)
-		{
-			output(Order);
-			break;
-		}
-	}
-	//cout << a7 << endl;					//²âÊÔ´úÂë 
-	if (a7 == 999)
-	{
-		cout << "²éÎŞ´ËÈË" << endl;
-	}
-	system("pause");
-}
-
-//ÅĞ¶ÏÊÇ·ñ
-void YoN()
-{
-	cout << "1.ÊÇ\t2.·ñ" << endl;
-	cin >> CorrectTimes;
-}
-
-//¿ÕÁªÏµÈË·µ»ØÎÄ×Ö
-void empty()
-{
-	cout << "Äú»¹Ã»ÓĞÌí¼ÓÁªÏµÈË£¡";
-	system("pause");
-}
-
-//Êä³ö²Ëµ¥
-void menu0()
-{
-	cout << "»¶Ó­Ê¹ÓÃ¡°Í¨Ñ¶Â¼0.90 ¡± " << endl << endl;
-
-	cout << "\t\t\t\t²Ëµ¥       µ±Ç°ÁªÏµÈËÊıÁ¿£º" << line() << " ÈË" << endl
-		<< "ÇëÊäÈë¶ÔÓ¦Êı×Ö»ñÈ¡¶ÔÓ¦¹¦ÄÜ£º" << endl
-		<< "\t\t\t  ********************" << endl
-		<< "\t\t\t  ****1.ĞÂ½¨ÁªÏµÈË****" << endl
-		<< "\t\t\t  ****2.²éÕÒÁªÏµÈË****" << endl
-		<< "\t\t\t  ****3.ĞŞ¸ÄÁªÏµÈË****" << endl
-		<< "\t\t\t  ****4.É¾³ıÁªÏµÈË****" << endl
-		<< "\t\t\t  ****5.Çå¿ÕÁªÏµÈË****" << endl
-		<< "\t\t\t  ****6.ÁªÏµÈËÁĞ±í****" << endl
-		<< "\t\t\t  ****7.Éè/ÖØÖÃÃÜÂë****" << endl
-		<< "\t\t\t  ****0.Í¬²½²¢ÍË³ö ****" << endl
-		<< "\t\t\t  ********************" << endl;
-}*/
